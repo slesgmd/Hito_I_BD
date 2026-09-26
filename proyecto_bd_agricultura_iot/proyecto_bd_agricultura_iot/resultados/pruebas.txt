@@ -1,0 +1,76 @@
+--- P1. sp_registrar_dispositivo crea la superclase y la subclase
+psql:06_pruebas.sql:16: NOTICE:  Dispositivo 2834 registrado como Sensor
+ id_dispositivo |  modelo  |  tipo_sensor  | profundidad_cm 
+----------------+----------+---------------+----------------
+           2834 | TEROS 12 | Conductividad |             30
+
+--- P2. Si falla la subclase no queda un dispositivo huerfano
+psql:06_pruebas.sql:24: ERROR:  null value in column "id_sistema" of relation "controlador" violates not-null constraint
+DETAIL:  Failing row contains (2835, null, null, null).
+CONTEXT:  SQL statement "INSERT INTO Controlador(id_dispositivo, id_sistema, caudal_max_lps, tipo_valvula)
+        VALUES (v_id, p_sistema, p_caudal_lps, p_valvula)"
+PL/pgSQL function sp_registrar_dispositivo(character varying,character varying,character varying,character varying,integer,integer,character varying,integer,integer,numeric,character varying) line 18 at SQL statement
+ filas_con_serie_prueba_02 
+---------------------------
+                         0
+
+--- P3. Disjuncion: el sensor no puede registrarse ademas como controlador
+psql:06_pruebas.sql:30: ERROR:  El dispositivo 2834 ya figura como sensor
+CONTEXT:  PL/pgSQL function trg_fn_subclase_exclusiva() line 8 at RAISE
+--- P4. Una lectura con humedad critica y bateria baja genera dos alertas
+     tipo     | severidad | valor_registrado 
+--------------+-----------+------------------
+ Bateria baja | Alta      |             6.00
+ Humedad baja | Critica   |            10.00
+
+--- P5. Una lectura repetida en el mismo minuto se ignora
+ lecturas_del_sensor | humedad_guardada 
+---------------------+------------------
+                   1 |            10.00
+
+--- P6. Un riego con el sistema de otra parcela se rechaza
+psql:06_pruebas.sql:46: ERROR:  El sistema 2 no abastece a la parcela 1
+CONTEXT:  PL/pgSQL function trg_fn_evento_riego() line 10 at RAISE
+--- P7. Si el volumen llega en cero se calcula con el caudal nominal
+ duracion_min | caudal_nominal_lph | volumen_litros 
+--------------+--------------------+----------------
+           30 |          163858.65 |       81929.33
+
+--- P8. No se permite una campania superpuesta con la vigente
+psql:06_pruebas.sql:62: ERROR:  La parcela 1 ya tiene una campania activa en ese periodo
+CONTEXT:  PL/pgSQL function trg_fn_campania_sin_solape() line 10 at RAISE
+--- P9. Una cosecha nueva actualiza el rendimiento derivado
+ rendimiento_antes 
+-------------------
+              0.00
+
+ rendimiento_despues | area_ha 
+---------------------+---------
+             3125.00 |    1.60
+
+--- P10. sp_cerrar_campania cierra la campania y deja rastro en la auditoria
+ estado  | rendimiento_kg_ha 
+---------+-------------------
+ Cerrada |           3125.00
+
+ estado_anterior | estado_nuevo | usuario_bd 
+-----------------+--------------+------------
+ En curso        | Cerrada      | postgres
+
+--- P11. Una alerta no puede marcarse como atendida sin fecha de atencion
+psql:06_pruebas.sql:80: ERROR:  new row for relation "alerta" violates check constraint "ck_alerta_aten"
+DETAIL:  Failing row contains (2, 2016, 2026-01-01 00:17:00, Humedad baja, Media, 53.83, t, null, null).
+--- P12. Funciones de consulta
+ num_zona |   litros   | eventos | humedad_media 
+----------+------------+---------+---------------
+        1 | 2108178.73 |       5 |         65.97
+        2 | 1112000.75 |       5 |         64.61
+        3 | 4667226.56 |      12 |         64.38
+        4 | 2319403.94 |       5 |         64.18
+        5 | 1105978.77 |       2 |         65.47
+        6 |  682443.27 |       2 |              
+
+ costo_insumos_soles 
+---------------------
+            73579.21
+

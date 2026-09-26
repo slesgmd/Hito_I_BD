@@ -1,0 +1,48 @@
+1K   sin C1       0.325 ms  sd    0.090
+1K   sin C2       0.243 ms  sd    0.036
+1K   sin C3       0.424 ms  sd    0.021
+1K   sin C4       0.207 ms  sd    0.006
+1K   sin C5       0.160 ms  sd    0.014
+tramo terminado: consultas 1K sin
+1K   con C1       0.306 ms  sd    0.067
+1K   con C2       0.229 ms  sd    0.023
+1K   con C3       0.389 ms  sd    0.013
+1K   con C4       0.206 ms  sd    0.022
+1K   con C5       0.147 ms  sd    0.034
+tramo terminado: consultas 1K con
+10K  sin C1       1.216 ms  sd    0.103
+10K  sin C2       1.047 ms  sd    0.105
+10K  sin C3       2.967 ms  sd    0.073
+10K  sin C4       0.649 ms  sd    0.029
+10K  sin C5       5.411 ms  sd    0.182
+tramo terminado: consultas 10K sin
+10K  con C1       0.887 ms  sd    0.088
+10K  con C2       1.020 ms  sd    0.015
+10K  con C3       2.914 ms  sd    0.064
+10K  con C4       0.627 ms  sd    0.024
+10K  con C5       0.459 ms  sd    0.030
+tramo terminado: consultas 10K con
+100K sin C1       9.701 ms  sd    0.300
+100K sin C2       8.651 ms  sd    0.464
+100K sin C3      30.254 ms  sd    0.330
+100K sin C4       3.827 ms  sd    0.092
+100K sin C5     652.954 ms  sd   78.780
+tramo terminado: consultas 100K sin
+100K con C1       5.705 ms  sd    0.057
+100K con C2       8.061 ms  sd    0.051
+100K con C3      31.161 ms  sd    2.377
+100K con C4       3.791 ms  sd    0.036
+100K con C5       2.968 ms  sd    0.094
+tramo terminado: consultas 100K con
+1M   sin C1     122.002 ms  sd    0.360
+1M   sin C2      89.705 ms  sd    0.382
+1M   sin C3     340.822 ms  sd    3.790
+1M   sin C4      27.531 ms  sd    0.331
+1M   sin C5   29330.362 ms  sd  315.276
+tramo terminado: consultas 1M sin
+1M   con C1      51.798 ms  sd    0.871
+1M   con C2     112.813 ms  sd    2.289
+1M   con C3     337.298 ms  sd    3.012
+1M   con C4      27.299 ms  sd    0.229
+1M   con C5      29.692 ms  sd    1.333
+tramo terminado: consultas 1M con

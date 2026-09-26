@@ -1,0 +1,26 @@
+[
+ {
+  "condicion": "sin",
+  "version": "Reescrita con AS MATERIALIZED",
+  "tiempos": [
+   15463.024,
+   15341.08,
+   15196.957
+  ],
+  "promedio": 15333.687,
+  "desviacion": 133.1875
+ },
+ {
+  "condicion": "con",
+  "version": "Reescrita con AS MATERIALIZED",
+  "tiempos": [
+   21.186,
+   22.056,
+   22.245,
+   21.156,
+   21.239
+  ],
+  "promedio": 21.5764,
+  "desviacion": 0.5292
+ }
+]

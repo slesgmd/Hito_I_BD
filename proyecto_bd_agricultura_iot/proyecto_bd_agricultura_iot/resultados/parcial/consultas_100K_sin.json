@@ -1,0 +1,90 @@
+{
+ "res": [
+  {
+   "escenario": "100K",
+   "registros": 100000,
+   "condicion": "sin",
+   "consulta": 1,
+   "tiempos": [
+    9.567,
+    9.513,
+    9.542,
+    9.651,
+    10.23
+   ],
+   "promedio": 9.7006,
+   "desviacion": 0.3004,
+   "filas": 39,
+   "plan": "-> Sort\n  -> Aggregate\n    -> Hash Join\n      -> Seq Scan on lectura_suelo\n      -> Hash\n        -> Hash Join\n          -> Hash Join\n            -> Hash Join\n              -> Seq Scan on dispositivo\n              -> Hash\n                -> Seq Scan on sensor\n            -> Hash\n              -> Hash Join\n                -> Hash Join\n                  -> Hash Join\n                    -> Seq Scan on campania\n                    -> Hash\n                      -> Seq Scan on parcela\n                  -> Hash\n                    -> Seq Scan on fundo\n                -> Hash\n                  -> Seq Scan on cultivo\n          -> Hash\n            -> Seq Scan on zona_manejo"
+  },
+  {
+   "escenario": "100K",
+   "registros": 100000,
+   "condicion": "sin",
+   "consulta": 2,
+   "tiempos": [
+    8.244,
+    8.72,
+    9.24,
+    8.921,
+    8.131
+   ],
+   "promedio": 8.6512,
+   "desviacion": 0.4639,
+   "filas": 58,
+   "plan": "-> Sort\n  -> Aggregate\n    -> Hash Join\n      -> Seq Scan on evento_riego\n      -> Hash\n        -> Seq Scan on campania\n  -> Aggregate\n    -> CTE Scan\n  -> Hash Join\n    -> Hash Join\n      -> Hash Join\n        -> Hash Join\n          -> Seq Scan on campania\n          -> Hash\n            -> Hash Join\n              -> CTE Scan\n              -> Hash\n                -> Subquery Scan\n                  -> Aggregate\n                    -> Seq Scan on cosecha\n        -> Hash\n          -> Seq Scan on parcela\n      -> Hash\n        -> Seq Scan on fundo\n    -> Hash\n      -> Seq Scan on cultivo"
+  },
+  {
+   "escenario": "100K",
+   "registros": 100000,
+   "condicion": "sin",
+   "consulta": 3,
+   "tiempos": [
+    30.324,
+    30.115,
+    30.743,
+    29.84,
+    30.248
+   ],
+   "promedio": 30.254,
+   "desviacion": 0.3297,
+   "filas": 110,
+   "plan": "-> Sort\n  -> Aggregate\n    -> Hash Join\n      -> Seq Scan on lectura_suelo\n      -> Hash\n        -> Hash Join\n          -> Seq Scan on dispositivo\n          -> Hash\n            -> Hash Join\n              -> Seq Scan on campania\n              -> Hash\n                -> Seq Scan on cultivo\n  -> Aggregate\n    -> CTE Scan\n  -> Hash Join\n    -> Hash Join\n      -> Seq Scan on dispositivo\n      -> Hash\n        -> Hash Join\n          -> CTE Scan\n          -> Hash\n            -> Seq Scan on sensor\n    -> Hash\n      -> Seq Scan on parcela"
+  },
+  {
+   "escenario": "100K",
+   "registros": 100000,
+   "condicion": "sin",
+   "consulta": 4,
+   "tiempos": [
+    3.792,
+    3.769,
+    3.802,
+    3.99,
+    3.783
+   ],
+   "promedio": 3.8272,
+   "desviacion": 0.0918,
+   "filas": 195,
+   "plan": "-> Sort\n  -> WindowAgg\n    -> WindowAgg\n      -> Sort\n        -> Subquery Scan\n          -> Aggregate\n            -> Hash Join\n              -> Hash Join\n                -> Hash Join\n                  -> Hash Join\n                    -> Seq Scan on cosecha\n                    -> Hash\n                      -> Seq Scan on campania\n                  -> Hash\n                    -> Seq Scan on parcela\n                -> Hash\n                  -> Seq Scan on fundo\n              -> Hash\n                -> Seq Scan on cultivo"
+  },
+  {
+   "escenario": "100K",
+   "registros": 100000,
+   "condicion": "sin",
+   "consulta": 5,
+   "tiempos": [
+    793.72,
+    619.45,
+    613.83,
+    623.096,
+    614.675
+   ],
+   "promedio": 652.9542,
+   "desviacion": 78.7798,
+   "filas": 8,
+   "plan": "-> Sort\n  -> Aggregate\n    -> Sort\n      -> Hash Join\n        -> Hash Join\n          -> Hash Join\n            -> Seq Scan on alerta\n            -> Hash\n              -> Seq Scan on dispositivo\n          -> Hash\n            -> Seq Scan on parcela\n        -> Hash\n          -> Seq Scan on fundo\n    -> Seq Scan on evento_riego\n    -> Seq Scan on evento_riego"
+  }
+ ],
+ "planes": []
+}

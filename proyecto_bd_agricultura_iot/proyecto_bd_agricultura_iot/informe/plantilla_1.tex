@@ -1,0 +1,350 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-noshorthands,es-tabla,es-nodecimaldot]{babel}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{graphicx,float,booktabs,longtable,tabularx,array,multirow}
+\usepackage{xcolor,listings,caption,enumitem,fancyhdr,tikz}
+\usepackage[hidelinks]{hyperref}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric}
+
+% ------------------------------------------------------------------
+% Enlaces que el grupo debe completar antes de entregar
+\newcommand{\enlaceVideo}{\textcolor{red}{[pegar aquí el enlace al video]}}
+\newcommand{\enlaceDumps}{\textcolor{red}{[pegar aquí el enlace a la carpeta de dumps]}}
+\newcommand{\enlaceRepositorio}{\textcolor{red}{[pegar aquí el enlace a la carpeta de scripts]}}
+% ------------------------------------------------------------------
+
+\definecolor{fondo}{RGB}{247,247,247}
+\definecolor{clave}{RGB}{0,70,140}
+\definecolor{comentario}{RGB}{90,120,90}
+\lstdefinestyle{sql}{language=SQL, basicstyle=\ttfamily\scriptsize, keywordstyle=\color{clave}\bfseries,
+  commentstyle=\color{comentario}\itshape, backgroundcolor=\color{fondo}, frame=single, rulecolor=\color{black!25},
+  breaklines=true, columns=fullflexible, keepspaces=true, showstringspaces=false, numbers=left,
+  numberstyle=\tiny\color{black!50}, xleftmargin=1.6em, framexleftmargin=1.4em,
+  morekeywords={REFERENCES,CASCADE,RESTRICT,SERIAL,BIGSERIAL,INCLUDE,USING,BRIN,RETURNS,LANGUAGE,
+  PROCEDURE,CALL,TRIGGER,EXECUTE,FUNCTION,RAISE,EXCEPTION,NOTICE,RETURNING,FILTER,OVER,PARTITION,
+  RANK,WITH,RECURSIVE,LATERAL,CONFLICT,NOTHING,COMMENT,INTERVAL,EXPLAIN,ANALYZE,VACUUM,BOOLEAN,
+  TIMESTAMP,SMALLINT,NUMERIC,COALESCE,NULLIF,EXISTS,DISTINCT,ROUND,BEGIN,END,DECLARE,ELSIF,
+  PERFORM,FOUND,NEW,OLD,DO,IF,THEN,ELSE,RETURN,REPLACE,VIEW,GRANT,REVOKE,ROLE}}
+\lstdefinestyle{plano}{basicstyle=\ttfamily\tiny, backgroundcolor=\color{fondo}, frame=single, breakautoindent=false,
+  rulecolor=\color{black!25}, breaklines=true, columns=fullflexible, keepspaces=true}
+\lstdefinestyle{py}{language=Python, basicstyle=\ttfamily\tiny, keywordstyle=\color{clave}\bfseries,
+  commentstyle=\color{comentario}\itshape, stringstyle=\color{black!70}, backgroundcolor=\color{fondo},
+  frame=single, rulecolor=\color{black!25}, breaklines=true, columns=fullflexible, keepspaces=true,
+  showstringspaces=false}
+\lstset{style=sql, literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+  {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1 {°}{{$^\circ$}}1}
+
+\newcommand{\tbus}{\textunderscore\allowbreak}
+\newcommand{\tb}[1]{{\ttfamily\let\_\tbus #1}}
+\newcommand{\pk}[1]{\underline{#1}}
+\newcommand{\fk}[2]{{\itshape\let\_\tbus #1}$^{\to\,\textsc{\let\_\tbus #2}}$}
+\setlength{\parskip}{0.45em}
+\setlength{\emergencystretch}{3em}
+\setlength{\parindent}{0pt}
+\renewcommand{\arraystretch}{1.12}
+\captionsetup{font=small,labelfont=bf}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small CS2041 Base de Datos I}\rhead{\small Agricultura de precisión e IoT}
+\cfoot{\small\thepage}
+
+\begin{document}
+
+% ================================================================== PORTADA
+\begin{titlepage}
+\centering
+{\large UNIVERSIDAD DE INGENIERÍA Y TECNOLOGÍA\par}
+\vspace{0.3cm}
+{\large UTEC\par}
+\vspace{2.2cm}
+{\normalsize Curso: Base de Datos I (CS2041), Laboratorio 14\par}
+\vspace{0.3cm}
+{\normalsize Ciclo 2026-2\par}
+\vspace{2cm}
+{\LARGE\bfseries Proyecto final\par}
+\vspace{0.4cm}
+{\Large Agricultura de Precisión y Sensores IoT Agropecuarios\par}
+\vspace{2.4cm}
+{\large Integrantes\par}
+\vspace{0.3cm}
+Lescano Garamendi, Juan Carlos Sebastián : 202510447\par
+Rojas Meza, Kiara Luz : 202510620\par
+\vspace{1.6cm}
+{\large Profesor\par}
+\vspace{0.3cm}
+Ojeda Rios, Brenner Humberto\par
+\vfill
+{\normalsize Lima, Perú\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ================================================================== 1
+\section{Requisitos}
+
+\subsection{Introducción}
+
+La agricultura de precisión parte de una idea sencilla: un campo no es homogéneo. Dos sectores de la misma parcela pueden tener suelos, pendientes y capacidades de retención de agua distintas, así que regarlos y fertilizarlos por igual desperdicia agua en uno y estresa al cultivo en el otro. Para manejar cada sector por separado hace falta medir, y hoy esa medición la hacen sensores de suelo conectados por radio que reportan humedad, temperatura, conductividad eléctrica y pH varias veces por hora.
+
+En la costa peruana el agua es el recurso que limita la producción. Los fundos agroexportadores de Ica, La Libertad o Piura riegan con agua de pozo o de canal, pagan por ella y deben justificar su uso ante la Autoridad Nacional del Agua. En ese contexto, saber cuántos litros cuesta producir un kilogramo de espárrago o de arándano deja de ser un dato académico y se vuelve un indicador de gestión.
+
+Este proyecto diseña e implementa la base de datos de una empresa agroexportadora que ya instaló sensores y controladores de riego en sus fundos, pero que guarda la información en lugares desconectados entre sí. Construimos el modelo conceptual, el modelo relacional y el modelo físico en PostgreSQL 16, poblamos la base con datos sintéticos en cuatro volúmenes (mil, diez mil, cien mil y un millón de registros) y medimos el efecto de distintos índices sobre cinco consultas de nivel intermedio.
+
+\subsection{Descripción general del problema y de la organización}
+
+El caso de estudio es Agroandina del Pacífico S.A.C.\footnote{Nombre ficticio. El caso se construyó con información pública del sector agroexportador peruano y con fichas técnicas de sensores comerciales.}, una empresa con @@FUNDOS@@ fundos repartidos en @@FUNDOS@@ departamentos del país. En la costa produce espárrago, arándano, palta Hass, uva de mesa, mango, alcachofa y pimiento piquillo; en Arequipa, quinua y papa; y en la selva alta, café y cacao. Maneja @@PARCELAS@@ parcelas que suman cerca de @@AREA@@ hectáreas, divididas en @@ZONAS@@ zonas de manejo.
+
+La empresa tiene instalados @@SENSORES@@ sensores de suelo y @@CONTROLADORES@@ controladores de válvulas. Los sensores provienen de varios fabricantes y cada uno envía sus datos a una plataforma web propia. Los controladores registran los riegos en la consola del proveedor del sistema. Las cosechas se anotan en hojas de cálculo por fundo y las aplicaciones de fertilizantes y plaguicidas se escriben en cuadernos de campo que un asistente transcribe cada semana.
+
+El problema concreto es que ninguna de estas fuentes comparte un identificador común. Un sensor se reconoce por su número de serie, una parcela por un código interno que cambia de un fundo a otro y una cosecha por la fecha y el nombre del supervisor. Cruzar los riegos de una parcela con lo que esa parcela produjo toma días de trabajo manual y el resultado suele tener errores.
+
+\subsection{Necesidad y usos de la base de datos}
+
+La gerencia agrícola necesita un repositorio único que permita responder preguntas que hoy no puede contestar a tiempo:
+
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+\item Qué parcelas están por debajo de la humedad mínima que su cultivo tolera y desde cuándo.
+\item Cuánta agua consume cada campaña por kilogramo cosechado, dato que además pide la certificación GLOBALG.A.P. y que sirve para renovar licencias de uso de agua.
+\item Qué sensores reportan valores anómalos con demasiada frecuencia, lo que suele indicar un equipo descalibrado antes que un problema del suelo.
+\item Qué parcelas rinden más dentro de cada fundo y con qué cultivo.
+\item Si el personal de riego reacciona a las alertas de humedad crítica dentro de un plazo razonable.
+\end{itemize}
+
+También se requiere trazabilidad: para exportar hay que demostrar qué producto se aplicó en qué zona, quién lo aplicó y que se respetó el periodo de carencia antes de cosechar.
+
+\subsection{¿Cómo se resuelve el problema hoy?}
+
+\subsubsection{¿Cómo se almacenan y procesan los datos hoy?}
+
+Hoy cada tipo de dato vive en un sistema distinto. Las lecturas de los sensores se descargan como archivos CSV desde los portales de los fabricantes, con columnas y formatos de fecha diferentes según la marca. Los riegos se exportan desde la consola de los controladores. Las cosechas están en un libro de Excel por fundo, con una hoja por campaña. Los cuadernos de aplicación se transcriben a otro Excel compartido y los avisos de humedad baja llegan por un grupo de WhatsApp en el que participan los operadores de riego.
+
+Un analista une estos archivos a mano una vez por semana. Como no hay claves comunes, el cruce se hace por nombres y fechas aproximadas, lo que produce duplicados cuando un mismo sensor se reinstala en otra zona y omisiones cuando un supervisor escribe mal el código de la parcela.
+
+\subsubsection{Flujo de datos}
+
+La Figura~\ref{fig:flujo_actual} resume el flujo actual. La información pasa por al menos tres transcripciones antes de llegar a quien decide, y el ciclo completo tarda una semana.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.45cm and 0.55cm, every node/.style={font=\scriptsize, align=center},
+  caja/.style={draw, rounded corners=2pt, minimum height=0.9cm, text width=2.05cm, fill=black!4},
+  flecha/.style={-{Stealth[length=2mm]}, thick}]
+\node[caja] (s) {Sensores de\\suelo};
+\node[caja, right=of s] (p) {Portales de\\fabricantes};
+\node[caja, right=of p] (c) {Archivos CSV\\por marca};
+\node[caja, right=of c] (e) {Excel consolidado\\(semanal)};
+\node[caja, right=of e] (g) {Reporte a\\gerencia};
+\node[caja, below=of p] (r) {Consola de\\controladores};
+\node[caja, below=of e] (k) {Cuadernos y\\Excel de cosecha};
+\node[caja, below=of s] (w) {Avisos por\\WhatsApp};
+\draw[flecha] (s) -- (p); \draw[flecha] (p) -- (c); \draw[flecha] (c) -- (e); \draw[flecha] (e) -- (g);
+\draw[flecha] (r) -| (e); \draw[flecha] (k) -- (e); \draw[flecha, dashed] (s) -- (w);
+\end{tikzpicture}
+\caption{Flujo de datos actual.}
+\label{fig:flujo_actual}
+\end{figure}
+
+Con la base de datos propuesta el flujo cambia (Figura~\ref{fig:flujo_nuevo}). Un servicio de ingesta recibe los mensajes del gateway LoRaWAN y llama al procedimiento \tb{sp\_registrar\_lectura}. Al insertarse la lectura, un trigger evalúa si la humedad está por debajo del mínimo del cultivo vigente y, si es así, crea la alerta. Los controladores registran cada riego en \tb{Evento\_Riego}, los supervisores registran cosechas y aplicaciones desde el campo, y la gerencia consulta vistas que ya traen los indicadores calculados.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.45cm and 0.5cm, every node/.style={font=\scriptsize, align=center},
+  caja/.style={draw, rounded corners=2pt, minimum height=0.9cm, text width=2.05cm, fill=black!4},
+  bd/.style={draw, cylinder, shape border rotate=90, aspect=0.18, minimum height=1.6cm, text width=2.3cm, fill=blue!6},
+  flecha/.style={-{Stealth[length=2mm]}, thick}]
+\node[caja] (s) {Sensores y\\controladores};
+\node[caja, right=of s] (g) {Gateway\\LoRaWAN};
+\node[caja, right=of g] (i) {Servicio de ingesta\\(procedimientos)};
+\node[bd, right=of i] (b) {PostgreSQL\\tablas, triggers\\y vistas};
+\node[caja, right=of b] (u) {Gerencia,\\agrónomos y\\operarios};
+\node[caja, below=of i] (m) {Registro en campo\\(cosecha, insumos)};
+\draw[flecha] (s) -- (g); \draw[flecha] (g) -- (i); \draw[flecha] (i) -- (b); \draw[flecha] (b) -- (u);
+\draw[flecha] (m) -| (b);
+\end{tikzpicture}
+\caption{Flujo de datos con la base de datos propuesta.}
+\label{fig:flujo_nuevo}
+\end{figure}
+
+\subsection{Descripción detallada del sistema}
+
+\subsubsection{Objetos de información actuales}
+
+Los objetos de información que la empresa ya maneja, aunque dispersos, son los siguientes:
+
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+\item \textbf{Fundos y parcelas.} Nombre, ubicación política, coordenadas, área, tipo de suelo y pendiente. Cambian muy poco.
+\item \textbf{Zonas de manejo.} Sectores de riego dentro de cada parcela. Se redefinen cuando se rediseña el sistema de riego.
+\item \textbf{Catálogo de cultivos.} Rangos óptimos de humedad, pH y conductividad, y duración del ciclo. Se toman de fichas técnicas y de la guía FAO-56 de evapotranspiración.
+\item \textbf{Campañas.} Qué cultivo se sembró en qué parcela y entre qué fechas.
+\item \textbf{Dispositivos.} Número de serie, modelo, fabricante, fecha de instalación y zona. Los sensores añaden tipo y profundidad; los controladores, el sistema de riego que accionan y el caudal de la válvula.
+\item \textbf{Lecturas de suelo.} Humedad volumétrica, temperatura, pH, conductividad y batería, con marca de tiempo. Es el objeto más voluminoso: un sensor que reporta cada 15 minutos genera 96 lecturas diarias.
+\item \textbf{Riegos, alertas, cosechas, aplicaciones de insumos y mantenimientos}, cada uno con su fecha, su responsable y sus cantidades.
+\end{itemize}
+
+\subsubsection{Características y funcionalidades esperadas}
+
+Se espera un repositorio central en el que cada lectura, riego y cosecha quede asociado sin ambigüedad a una zona, una parcela y una campaña. Las reglas del negocio deben vivir en la base de datos y no en la buena voluntad de quien digita: rangos válidos, fechas coherentes, campañas que no se superpongan, alertas que se generen solas y un rendimiento por hectárea que se actualice con cada cosecha.
+
+En cuanto a desempeño, las consultas operativas (alertas pendientes, estado hídrico de una zona) deben responder en menos de un segundo, y los reportes analíticos sobre toda la serie, en pocos segundos. La carga masiva de datos históricos debe poder hacerse en minutos.
+
+\subsubsection{Tipos de usuarios existentes y necesarios}
+
+La Tabla~\ref{tab:usuarios} resume los perfiles y lo que cada uno puede hacer. El script opcional \tb{05\_roles.sql} crea estos roles en PostgreSQL con los permisos indicados.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.1cm}X}
+\toprule
+\textbf{Perfil} & \textbf{Acceso} \\
+\midrule
+Gerencia agrícola & Solo lectura sobre las vistas de producción, eficiencia hídrica y alertas. No ve datos personales de los operarios. \\
+Ingeniero agrónomo & Lectura de todo el esquema. Crea y cierra campañas, mantiene el catálogo de cultivos e insumos. \\
+Operador de riego & Registra eventos de riego y marca alertas como atendidas. Consulta lecturas y el estado hídrico. \\
+Técnico de campo & Registra aplicaciones de insumos, cosechas y mantenimientos de equipos. \\
+Plataforma IoT & Cuenta de servicio. Solo puede ejecutar \tb{sp\_registrar\_lectura}; no tiene acceso directo a las tablas. \\
+Administrador de BD & Control total: estructura, respaldos, índices y usuarios. \\
+\bottomrule
+\end{tabularx}
+\caption{Perfiles de usuario.}
+\label{tab:usuarios}
+\end{table}
+
+\subsubsection{Tipos de consulta y actualizaciones}
+
+Las consultas más frecuentes son de tres tipos. Las operativas buscan pocas filas recientes: la última lectura de una zona, las alertas sin atender o los riegos de hoy. Las de seguimiento agregan un periodo corto, por ejemplo la humedad promedio del último mes por parcela. Las analíticas recorren toda la historia: eficiencia hídrica por campaña, ranking de rendimiento o proporción de lecturas anómalas por sensor. Las cinco consultas del experimento (Sección~\ref{sec:consultas}) cubren estos tres tipos.
+
+Las actualizaciones tienen ritmos muy distintos, como muestra la Tabla~\ref{tab:ritmos}.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{3.2cm}X}
+\toprule
+\textbf{Dato} & \textbf{Frecuencia} & \textbf{Forma de carga} \\
+\midrule
+Lecturas de suelo & Cada 5 a 60 min por sensor & Inserción continua vía procedimiento; nunca se modifican. \\
+Alertas & Según las lecturas & Las crea un trigger; el operador solo actualiza la atención. \\
+Eventos de riego & Varias veces al día & Inserción automática desde el controlador o manual. \\
+Cosechas & Diaria en temporada & Inserción por el supervisor; recalcula el rendimiento. \\
+Aplicaciones de insumos & Semanal & Inserción por el técnico de campo. \\
+Campañas & Por temporada & Alta y cambio de estado por el agrónomo (auditado). \\
+Fundos, parcelas, cultivos & Rara vez & Carga inicial y ajustes puntuales. \\
+\bottomrule
+\end{tabularx}
+\caption{Ritmo de carga y modificación de los datos.}
+\label{tab:ritmos}
+\end{table}
+
+\subsubsection{Tamaño estimado de la base de datos}
+
+El escenario de un millón de registros ocupa @@TAM1M@@ en disco con todos sus índices. La tabla \tb{Lectura\_Suelo} concentra el @@PCTLECT@@ del espacio ocupado por las tablas (Tabla~\ref{tab:tamanos}). Cada lectura ocupa en promedio @@BYTESLECT@@ bytes entre datos e índices.
+
+%%TABLA_TAMANOS%%
+
+Ese millón de registros es, sin embargo, una muestra. Si los @@SENSORES@@ sensores reportaran realmente cada 15 minutos, la empresa generaría unos @@LECTANIO@@ millones de lecturas al año, es decir, alrededor de @@GBANIO@@ GB anuales solo en esa tabla con el esquema de índices actual. Ese orden de magnitud condiciona las decisiones de la Sección~\ref{sec:extra}.
+
+\subsection{Objetivos del proyecto}
+
+El objetivo general es diseñar e implementar en PostgreSQL una base de datos que integre la información de sensores, riego, campañas y cosechas de la empresa, y evaluar experimentalmente cómo responde a volúmenes crecientes de datos.
+
+Los objetivos específicos son:
+\begin{enumerate}[leftmargin=1.6em,itemsep=0.1em]
+\item Modelar el dominio con una jerarquía Is-A, entidades débiles y una relación ternaria, y transformarlo a un esquema relacional en tercera forma normal.
+\item Trasladar las reglas del negocio a restricciones, procedimientos y triggers para que la base de datos las haga cumplir por sí misma.
+\item Generar datos sintéticos coherentes con la realidad agronómica peruana en cuatro volúmenes.
+\item Medir cinco consultas intermedias con y sin índices, comparar tipos de índice y cuantificar cuánto encarecen los índices las operaciones de escritura.
+\item Proponer una estrategia de crecimiento para volúmenes superiores al millón de registros.
+\end{enumerate}
+
+\subsection{Referencias del proyecto}
+
+Los rangos óptimos por cultivo y la relación entre humedad del suelo y estrés hídrico se tomaron de la guía FAO-56 y de fichas técnicas públicas. Los modelos de sensores y controladores corresponden a equipos comerciales reales, pero sus datos son simulados. Para el diseño y la implementación seguimos la bibliografía del curso y la documentación oficial de PostgreSQL.
+
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+\item Allen, R., Pereira, L., Raes, D. y Smith, M. (1998). \textit{Crop evapotranspiration: guidelines for computing crop water requirements}. FAO Irrigation and Drainage Paper 56.
+\item Garcia-Molina, H., Ullman, J. y Widom, J. (2009). \textit{Database Systems: The Complete Book} (2.ª ed.). Pearson.
+\item Elmasri, R. y Navathe, S. (2016). \textit{Fundamentals of Database Systems} (7.ª ed.). Pearson.
+\item PostgreSQL Global Development Group. \textit{PostgreSQL 16 Documentation}. \url{https://www.postgresql.org/docs/16/}
+\item Autoridad Nacional del Agua. \url{https://www.gob.pe/ana}
+\item Ministerio de Desarrollo Agrario y Riego. \url{https://www.gob.pe/midagri}
+\item GLOBALG.A.P. Integrated Farm Assurance Standard. \url{https://www.globalgap.org}
+\item METER Group. Ficha técnica del sensor TEROS 12. \url{https://www.metergroup.com}
+\end{itemize}
+
+\subsection{Eventualidades}
+
+\subsubsection{Problemas que pudieran encontrarse en el proyecto}
+
+El primer problema es el acceso a datos reales. Las lecturas de sensores de una empresa privada son información comercial y no están publicadas, por eso trabajamos con datos sintéticos construidos con parámetros reales. El riesgo es que la simulación no reproduzca fenómenos que sí ocurren en campo, como la deriva gradual de un sensor o la estacionalidad de la humedad entre invierno y verano.
+
+Otros problemas previsibles son técnicos. Los sensores pueden enviar dos lecturas con la misma marca de tiempo si su reloj se desfasa, lo que chocaría con la clave primaria; por eso el procedimiento de registro ignora duplicados con \tb{ON CONFLICT DO NOTHING}. También hay pérdidas de transmisión que dejan huecos en las series, y cambios de formato cuando un proveedor actualiza su plataforma. Por último, todas las mediciones se hicieron en una sola máquina, así que los tiempos absolutos dependen de ese equipo; lo que se puede comparar con confianza son las proporciones entre escenarios y entre configuraciones.
+
+\subsubsection{Límites y alcances del proyecto}
+
+El proyecto cubre el modelo conceptual, el relacional y el físico, la carga de datos en cuatro volúmenes, las vistas, procedimientos y triggers, y el experimento de optimización con sus variantes. No incluye el servicio de ingesta en tiempo real ni una aplicación web, tampoco datos meteorológicos o imágenes satelitales, ni algoritmos de recomendación de riego. Estos elementos se mencionan como trabajo futuro porque el esquema está preparado para recibirlos.
+
+% ================================================================== 2
+\section{Modelo Entidad-Relación}
+
+\subsection{Reglas semánticas}
+
+Cada regla indica entre paréntesis el mecanismo que la hace cumplir en la implementación. Las multiplicidades se expresan como mínimo y máximo de participación.
+
+\begin{enumerate}[label=\textbf{R\arabic*.},leftmargin=2.3em,itemsep=0.15em]
+\item Un fundo tiene una o más parcelas y cada parcela pertenece a exactamente un fundo. El código de la parcela se repite entre fundos, pero no dentro del mismo fundo (FK, \tb{NOT NULL}, \tb{UNIQUE}).
+\item Cada parcela se divide en una o más zonas de manejo. Una zona no existe fuera de su parcela y se identifica por su número dentro de ella: es una entidad débil (PK compuesta, \tb{ON DELETE CASCADE}).
+\item Un cultivo puede sembrarse en muchas campañas y una parcela puede tener muchas campañas a lo largo del tiempo; cada campaña corresponde a exactamente una parcela y a exactamente un cultivo (FK, \tb{NOT NULL}).
+\item En una misma parcela, dos campañas no pueden superponerse en el tiempo. En consecuencia, en una fecha dada hay a lo sumo una campaña en curso por parcela (trigger \tb{trg\_campania\_sin\_solape}).
+\item La fecha de fin estimada de una campaña es posterior a su fecha de siembra (\tb{CHECK}).
+\item Una parcela puede tener cero o más sistemas de riego; las parcelas de secano de la selva no tienen ninguno. Cada sistema abastece a una sola parcela (FK).
+\item Todo dispositivo está instalado en exactamente una zona de manejo; una zona puede tener cero o más dispositivos (FK compuesta).
+\item Todo dispositivo es un sensor o un controlador, y nunca ambos a la vez. La especialización es total y disjunta (trigger \tb{trg\_fn\_subclase\_exclusiva} y procedimiento \tb{sp\_registrar\_dispositivo}).
+\item Cada controlador acciona exactamente un sistema de riego, que debe ser el de la parcela donde está instalado (FK y verificación de carga).
+\item Un sensor emite cero o más lecturas y cada lectura pertenece a un solo sensor. La lectura se identifica por el minuto en que se tomó dentro de ese sensor: es una entidad débil y un sensor no puede reportar dos veces en el mismo minuto (PK compuesta).
+\item Las variables presentes en una lectura dependen del tipo de sensor. Un sensor de pH no mide humedad y uno de temperatura solo mide temperatura; en esos casos la columna queda nula por diseño.
+\item Toda alerta se origina en exactamente una lectura, y una lectura origina a lo sumo una alerta de cada tipo (FK compuesta hacia la lectura, \tb{UNIQUE}).
+\item Si la humedad de una lectura cae por debajo del mínimo del cultivo en curso, o la batería baja de 15~\%, se genera la alerta correspondiente sin intervención humana (trigger \tb{trg\_alerta\_lectura}).
+\item Una alerta atendida debe tener fecha de atención, y una no atendida no puede tenerla (\tb{CHECK}).
+\item Un evento de riego usa exactamente un sistema sobre exactamente una zona, y esa zona debe pertenecer a la parcela que abastece el sistema. Puede tener un operario responsable o ninguno si fue automático (FK y trigger \tb{trg\_evento\_riego}).
+\item En una zona no pueden empezar dos riegos en el mismo minuto (\tb{UNIQUE}).
+\item Si el controlador no informa el volumen aplicado, este se calcula como caudal nominal por duración (trigger \tb{trg\_evento\_riego}).
+\item Una campaña tiene cero o más registros de cosecha y cada cosecha pertenece a una sola campaña. Las campañas perdidas no registran cosecha (FK y verificación de carga).
+\item El rendimiento de una campaña es un atributo derivado: kilogramos cosechados entre el área de la parcela (trigger \tb{trg\_rendimiento}).
+\item En una aplicación de insumo intervienen exactamente una zona, un insumo y un operario en un instante dado. La misma terna puede repetirse en otro momento, pero no en el mismo (relación ternaria, PK de cinco columnas).
+\item Un operario puede dar mantenimiento a muchos dispositivos y un dispositivo puede ser atendido por muchos operarios. Un operario no registra dos mantenimientos del mismo equipo en la misma fecha (relación N:M, PK compuesta).
+\item Todo operario tiene un DNI de ocho dígitos que no se repite, y su teléfono, si existe, tiene nueve dígitos (\tb{UNIQUE}, \tb{CHECK} con expresión regular).
+\item Los valores medidos respetan rangos físicos: humedad entre 0 y 100~\%, pH entre 0 y 14, conductividad no negativa, temperatura entre $-10$ y 60~°C (\tb{CHECK}).
+\item Todo cambio de estado de una campaña queda registrado con usuario y fecha (trigger \tb{trg\_auditoria\_campania}).
+\end{enumerate}
+
+\subsection{Modelo Entidad-Relación}
+
+La Figura~\ref{fig:er} presenta el diagrama. Usamos notación de Chen: rectángulos para entidades, óvalos para atributos, rombos para relaciones y triángulos para la especialización. Las claves se subrayan con línea continua y las claves parciales de las entidades débiles, con línea discontinua. Siguiendo a Garcia-Molina, Ullman y Widom, una flecha que llega a una entidad indica que cada instancia del otro lado se relaciona con a lo sumo una instancia de ella. Siguiendo a Elmasri y Navathe, la línea doble indica participación total. Las entidades débiles y sus relaciones identificadoras se dibujan con borde doble y el atributo derivado, con óvalo punteado.
+
+\begin{figure}[H]
+\centering
+\IfFileExists{figuras/diagrama_er.png}{%
+  \includegraphics[width=\textwidth]{figuras/diagrama_er.png}}{%
+  \fbox{\parbox[c][7cm][c]{0.9\textwidth}{\centering\textcolor{red}{Insertar aquí el diagrama exportado desde Lucid\\como \tb{informe/figuras/diagrama\_er.png}}}}}
+\caption{Modelo entidad-relación.}
+\label{fig:er}
+\end{figure}
+
+\subsection{Especificaciones y consideraciones sobre el modelo}
+
+\textbf{Campaña como entidad.} Una campaña podría verse como la relación \emph{se siembra} entre \tb{Parcela} y \tb{Cultivo}. La modelamos como entidad porque tiene identidad propia, porque la misma parcela repite el mismo cultivo en años distintos y porque otras entidades dependen de ella: las cosechas se registran contra una campaña concreta, no contra un par parcela-cultivo.
+
+\textbf{Dos entidades débiles.} \tb{Zona\_Manejo} depende de \tb{Parcela}: la zona 3 solo tiene sentido dentro de su parcela. \tb{Lectura\_Suelo} depende de \tb{Sensor}: una medición aislada del equipo que la tomó no significa nada, y el instante basta para distinguirla dentro de ese equipo. Tratar la lectura como débil evita además un identificador artificial en la tabla más grande del esquema, lo que ahorra espacio y un índice.
+
+\textbf{Especialización total y disjunta.} \tb{Dispositivo} generaliza a \tb{Sensor} y \tb{Controlador}. Es total porque la empresa no instala equipos que no sean de uno de los dos tipos, y disjunta porque un nodo que mide y a la vez acciona válvulas se registra como dos dispositivos. Cada subclase tiene atributos y relaciones propias: solo los sensores emiten lecturas y solo los controladores accionan un sistema de riego.
+
+\textbf{Relación ternaria.} \tb{Aplica} relaciona \tb{Zona\_Manejo}, \tb{Insumo} y \tb{Operario}. No se puede reemplazar por tres relaciones binarias sin perder información: saber qué operario aplicó qué insumo y en qué zona trabajó cada operario no permite reconstruir quién aplicó qué cosa dónde. La terna es de muchos a muchos a muchos, por eso ninguno de sus arcos lleva flecha.
+
+\textbf{Atributos compuestos y derivados.} La ubicación del fundo (departamento, provincia, distrito) y los rangos óptimos del cultivo (mínimo y máximo de humedad y de pH) son atributos compuestos que se aplanan en columnas simples. El rendimiento por hectárea de la campaña es derivado; se almacena por rendimiento de consulta y lo mantiene un trigger.
+
+\textbf{Tabla fuera del modelo conceptual.} \tb{Auditoria\_Campania} es una bitácora técnica alimentada por un trigger. No representa un objeto del negocio, por lo que no aparece en el diagrama.
+
+\textbf{Relaciones del diagrama.} Además de las ya descritas, el modelo incluye: \emph{tiene} (Fundo--Parcela), \emph{se divide en} (Parcela--Zona, identificadora), \emph{se siembra en} (Campaña--Parcela), \emph{corresponde a} (Campaña--Cultivo), \emph{labora en} (Operario--Fundo), \emph{abastece} (Sistema--Parcela), \emph{instalado en} (Dispositivo--Zona), \emph{acciona} (Controlador--Sistema), \emph{registra} (Sensor--Lectura, identificadora), \emph{origina} (Lectura--Alerta), \emph{atiende} (Operario--Alerta), \emph{ejecuta} (Sistema--Evento), \emph{riega} (Evento--Zona), \emph{opera} (Operario--Evento), \emph{produce} (Campaña--Cosecha), \emph{recoge} (Operario--Cosecha) y \emph{mantiene} (Operario--Dispositivo, N:M). En total el modelo tiene 15 entidades, contando las dos subclases, y 18 relaciones.
+
