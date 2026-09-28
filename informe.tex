@@ -13,6 +13,7 @@
 \newcommand{\tb}[1]{{\ttfamily\let\_\tbus #1}}
 \newcommand{\pk}[1]{\underline{#1}}
 \newcommand{\fk}[2]{{\itshape\let\_\tbus #1}$^{\to\,\textsc{\let\_\tbus #2}}$}
+\newcommand{\relacion}[1]{\item\begin{minipage}[t]{\linewidth}\raggedright #1\par\end{minipage}}
 \setlength{\parskip}{0.45em}
 \setlength{\emergencystretch}{3em}
 \setlength{\parindent}{0pt}
@@ -223,8 +224,7 @@ El objetivo general de esta etapa es diseñar una base de datos que integre la i
 
 Los objetivos específicos son:
 \begin{enumerate}[leftmargin=1.6em,itemsep=0.1em]
-\item Modelar el dominio con una jerarquía Is-A, entidades débiles y una relación ternaria, y transformarlo a un esquema relacional que represente sus claves y restricciones.
-\item Especificar las restricciones de dominio, unicidad, participación y referencia que debe respetar el modelo.
+\item Modelar el dominio con una jerarquía Is-A, entidades débiles y una relación ternaria, y transformarlo a un esquema relacional que represente sus claves.
 \item Definir cómo se cargarían, actualizarían y consultarían los principales datos del sistema.
 \item Establecer los volúmenes esperados y los tiempos de respuesta deseados para las operaciones más frecuentes.
 \end{enumerate}
@@ -255,39 +255,9 @@ Otros problemas previsibles son técnicos. Los sensores pueden enviar dos lectur
 
 \subsubsection{Límites y alcances del proyecto}
 
-Este informe cubre los requerimientos, el modelo entidad-relación, el modelo relacional, las reglas semánticas y el diccionario de datos. La creación física en PostgreSQL y la carga de datos quedan fuera del alcance de esta entrega. Tampoco se incluyen en esta etapa un servicio de ingesta en tiempo real, una aplicación web, datos meteorológicos, imágenes satelitales ni algoritmos de recomendación de riego.
+Este informe cubre los requerimientos, el modelo entidad-relación, el modelo relacional y el diccionario de datos. La creación física en PostgreSQL y la carga de datos quedan fuera del alcance de esta entrega. Tampoco se incluyen en esta etapa un servicio de ingesta en tiempo real, una aplicación web, datos meteorológicos, imágenes satelitales ni algoritmos de recomendación de riego.
 
 \section{Modelo Entidad-Relación}
-
-\subsection{Reglas semánticas}
-
-Cada regla expresa una condición del dominio que deberá respetarse en el modelo y en la implementación posterior. Las multiplicidades se expresan como mínimo y máximo de participación.
-
-\begin{enumerate}[label=\textbf{R\arabic*.},leftmargin=2.3em,itemsep=0.15em]
-\item Un fundo puede tener cero o más parcelas y cada parcela pertenece a exactamente un fundo. El código de la parcela se repite entre fundos, pero no dentro del mismo fundo.
-\item Cada parcela se divide en una o más zonas de manejo. Una zona no existe fuera de su parcela y se identifica por su número dentro de ella: es una entidad débil.
-\item Un cultivo puede sembrarse en muchas campañas y una parcela puede tener muchas campañas a lo largo del tiempo; cada campaña corresponde a exactamente una parcela y a exactamente un cultivo.
-\item En una misma parcela, dos campañas no pueden superponerse en el tiempo. En consecuencia, en una fecha dada hay a lo sumo una campaña en curso por parcela; esta condición temporal se deberá validar al implementar el esquema.
-\item La fecha de fin estimada de una campaña es posterior a su fecha de siembra (\tb{CHECK}).
-\item Una parcela puede tener cero o más sistemas de riego; las parcelas de secano de la selva no tienen ninguno. Cada sistema abastece a una sola parcela (FK).
-\item Todo dispositivo está instalado en exactamente una zona de manejo; una zona puede tener cero o más dispositivos (FK compuesta).
-\item Todo dispositivo es un sensor o un controlador, y nunca ambos a la vez. La especialización es total y disjunta.
-\item Cada controlador acciona exactamente un sistema de riego, que debe ser el de la parcela donde está instalado. Esta condición relaciona datos de varias tablas y se deberá asegurar al implementar el esquema.
-\item Un sensor emite cero o más lecturas y cada lectura pertenece a un solo sensor. La lectura se identifica por su marca de tiempo dentro de ese sensor: es una entidad débil y un sensor no puede registrar dos lecturas con la misma marca de tiempo (PK compuesta).
-\item Las variables presentes en una lectura dependen del tipo de sensor. Un sensor de pH no mide humedad y uno de temperatura solo mide temperatura; en esos casos la columna queda nula por diseño.
-\item Toda alerta se origina en exactamente una lectura, y una lectura origina a lo sumo una alerta de cada tipo (FK compuesta hacia la lectura, \tb{UNIQUE}).
-\item Si la humedad de una lectura cae por debajo del mínimo del cultivo en curso, o la batería baja de 15~\%, se debe generar la alerta correspondiente sin intervención humana.
-\item Una alerta atendida debe tener fecha de atención, y una no atendida no puede tenerla (\tb{CHECK}).
-\item Un evento de riego usa exactamente un sistema sobre exactamente una zona, y esa zona debe pertenecer a la parcela que abastece el sistema. Esta condición entre tablas se deberá asegurar al implementar el esquema. Puede tener un operario responsable o ninguno si fue automático.
-\item En una zona no pueden empezar dos riegos con la misma marca de tiempo (\tb{UNIQUE}).
-\item Si el controlador no informa el volumen aplicado, se estima como caudal nominal en litros por hora multiplicado por la duración en minutos y dividido entre 60.
-\item Una campaña tiene cero o más registros de cosecha y cada cosecha pertenece a una sola campaña. Las campañas perdidas no registran cosecha; esta última condición se deberá validar al implementar el esquema.
-\item El rendimiento de una campaña es un atributo derivado: kilogramos cosechados entre el área de la parcela.
-\item En una aplicación de insumo intervienen exactamente una zona, un insumo y un operario en un instante dado. La misma terna puede repetirse en otro momento, pero no en el mismo (relación ternaria, PK de cinco columnas).
-\item Un operario puede dar mantenimiento a muchos dispositivos y un dispositivo puede ser atendido por muchos operarios. Un operario no registra dos mantenimientos del mismo equipo en la misma fecha (relación N:M, PK compuesta).
-\item Todo operario tiene un DNI de ocho dígitos que no se repite, y su teléfono, si existe, tiene nueve dígitos (\tb{UNIQUE}, \tb{CHECK} con expresión regular).
-\item Los valores medidos respetan rangos físicos: humedad entre 0 y 100~\%, pH entre 0 y 14, conductividad no negativa, temperatura entre $-10$ y 60~°C (\tb{CHECK}).
-\end{enumerate}
 
 \subsection{Modelo Entidad-Relación}
 
@@ -340,36 +310,36 @@ La Figura~\ref{fig:er} presenta el diagrama. Usamos notación de Chen: rectángu
 El esquema tiene 17 relaciones: 15 provienen de las entidades del modelo conceptual y dos representan relaciones con atributos propios (\tb{Aplicacion\_Insumo} y \tb{Mantenimiento}). Las claves primarias van subrayadas y las claves foráneas en cursiva, con una flecha hacia la tabla referenciada. La lista se construyó a partir del modelo entidad-relación.
 
 \begin{itemize}[leftmargin=1.2em,itemsep=0.3em]
-\item \textsc{Fundo}(\pk{id\_fundo}, nombre, departamento, provincia, distrito, area\_total\_ha, latitud, longitud, fecha\_registro), UNIQUE(nombre, departamento)
-\item \textsc{Parcela}(\pk{id\_parcela}, \fk{id\_fundo}{Fundo}, codigo\_parcela, area\_ha, tipo\_suelo, pendiente\_pct, fecha\_habilitacion), UNIQUE(id\_fundo, codigo\_parcela)
-\item \textsc{Zona\_Manejo}(\pk{\fk{id\_parcela}{Parcela}}, \pk{num\_zona}, area\_ha, descripcion)
-\item \textsc{Cultivo}(\pk{id\_cultivo}, nombre\_comun, nombre\_cientifico, ciclo\_dias, humedad\_optima\_min, humedad\_optima\_max, ph\_optimo\_min, ph\_optimo\_max, ce\_maxima\_ds\_m)
-\item \textsc{Operario}(\pk{id\_operario}, dni, nombre, apellido, rol, telefono, \fk{id\_fundo}{Fundo}, fecha\_ingreso)
-\item \textsc{Campania}(\pk{id\_campania}, \fk{id\_parcela}{Parcela}, \fk{id\_cultivo}{Cultivo}, fecha\_siembra, fecha\_fin\_estimada, densidad\_plantas\_ha, estado, rendimiento\_kg\_ha), UNIQUE(id\_parcela, fecha\_siembra)
-\item \textsc{Sistema\_Riego}(\pk{id\_sistema}, \fk{id\_parcela}{Parcela}, tipo, caudal\_nominal\_lph, fuente\_agua, fecha\_instalacion, estado)
-\item \textsc{Dispositivo}(\pk{id\_dispositivo}, codigo\_serie, modelo, fabricante, fecha\_instalacion, estado, \fk{id\_parcela}{Zona\_Manejo}, \fk{num\_zona}{Zona\_Manejo})
-\item \textsc{Sensor}(\pk{\fk{id\_dispositivo}{Dispositivo}}, tipo\_sensor, profundidad\_cm, frecuencia\_min, unidad\_medida, rango\_min, rango\_max)
-\item \textsc{Controlador}(\pk{\fk{id\_dispositivo}{Dispositivo}}, \fk{id\_sistema}{Sistema\_Riego}, caudal\_max\_lps, tipo\_valvula)
-\item \textsc{Lectura\_Suelo}(\pk{\fk{id\_dispositivo}{Sensor}}, \pk{fecha\_hora}, humedad\_pct, temperatura\_c, ph, conductividad\_ds\_m, bateria\_pct)
-\item \textsc{Evento\_Riego}(\pk{id\_evento}, \fk{id\_sistema}{Sistema\_Riego}, \fk{id\_parcela}{Zona\_Manejo}, \fk{num\_zona}{Zona\_Manejo}, \fk{id\_operario}{Operario}, fecha\_hora\_inicio, duracion\_min, volumen\_litros, modo), UNIQUE(id\_parcela, num\_zona, fecha\_hora\_inicio)
-\item \textsc{Alerta}(\pk{id\_alerta}, \fk{id\_dispositivo}{Lectura\_Suelo}, \fk{fecha\_hora}{Lectura\_Suelo}, tipo, severidad, valor\_registrado, atendida, fecha\_atencion, \fk{id\_operario}{Operario}), UNIQUE(id\_dispositivo, fecha\_hora, tipo)
-\item \textsc{Cosecha}(\pk{id\_cosecha}, \fk{id\_campania}{Campania}, \fk{id\_operario}{Operario}, fecha, cantidad\_kg, categoria, humedad\_producto\_pct, precio\_kg\_soles)
-\item \textsc{Insumo}(\pk{id\_insumo}, nombre, tipo, unidad, costo\_unitario, periodo\_carencia\_dias)
-\item \textsc{Aplicacion\_Insumo}(\pk{\fk{id\_parcela}{Zona\_Manejo}}, \pk{\fk{num\_zona}{Zona\_Manejo}},\linebreak \hspace*{1em}\pk{\fk{id\_insumo}{Insumo}}, \pk{\fk{id\_operario}{Operario}},\linebreak \hspace*{1em}\pk{fecha\_hora}, dosis, metodo)
-\item \textsc{Mantenimiento}(\pk{\fk{id\_dispositivo}{Dispositivo}}, \pk{\fk{id\_operario}{Operario}},\linebreak \pk{fecha}, tipo, observacion, costo)
+\relacion{\textsc{Fundo}(\pk{id\_fundo}, nombre, departamento, provincia, distrito, area\_total\_ha, latitud, longitud, fecha\_registro)}
+\relacion{\textsc{Parcela}(\pk{id\_parcela}, \fk{id\_fundo}{Fundo}, codigo\_parcela, area\_ha, tipo\_suelo, pendiente\_pct, fecha\_habilitacion)}
+\relacion{\textsc{Zona\_Manejo}(\pk{\fk{id\_parcela}{Parcela}}, \pk{num\_zona}, area\_ha, descripcion)}
+\relacion{\textsc{Cultivo}(\pk{id\_cultivo}, nombre\_comun, nombre\_cientifico, ciclo\_dias, humedad\_optima\_min, humedad\_optima\_max, ph\_optimo\_min, ph\_optimo\_max, ce\_maxima\_ds\_m)}
+\relacion{\textsc{Operario}(\pk{id\_operario}, dni, nombre, apellido, rol, telefono, \fk{id\_fundo}{Fundo}, fecha\_ingreso)}
+\relacion{\textsc{Campania}(\pk{id\_campania}, \fk{id\_parcela}{Parcela}, \fk{id\_cultivo}{Cultivo}, fecha\_siembra, fecha\_fin\_estimada, densidad\_plantas\_ha, estado, rendimiento\_kg\_ha)}
+\relacion{\textsc{Sistema\_Riego}(\pk{id\_sistema}, \fk{id\_parcela}{Parcela}, tipo, caudal\_nominal\_lph, fuente\_agua, fecha\_instalacion, estado)}
+\relacion{\textsc{Dispositivo}(\pk{id\_dispositivo}, codigo\_serie, modelo, fabricante, fecha\_instalacion, estado, \fk{id\_parcela}{Zona\_Manejo}, \fk{num\_zona}{Zona\_Manejo})}
+\relacion{\textsc{Sensor}(\pk{\fk{id\_dispositivo}{Dispositivo}}, tipo\_sensor, profundidad\_cm, frecuencia\_min, unidad\_medida, rango\_min, rango\_max)}
+\relacion{\textsc{Controlador}(\pk{\fk{id\_dispositivo}{Dispositivo}}, \fk{id\_sistema}{Sistema\_Riego}, caudal\_max\_lps, tipo\_valvula)}
+\relacion{\textsc{Lectura\_Suelo}(\pk{\fk{id\_dispositivo}{Sensor}}, \pk{fecha\_hora}, humedad\_pct, temperatura\_c, ph, conductividad\_ds\_m, bateria\_pct)}
+\relacion{\textsc{Evento\_Riego}(\pk{id\_evento}, \fk{id\_sistema}{Sistema\_Riego}, \fk{id\_parcela}{Zona\_Manejo}, \fk{num\_zona}{Zona\_Manejo}, \fk{id\_operario}{Operario}, fecha\_hora\_inicio, duracion\_min, volumen\_litros, modo)}
+\relacion{\textsc{Alerta}(\pk{id\_alerta}, \fk{id\_dispositivo}{Lectura\_Suelo}, \fk{fecha\_hora}{Lectura\_Suelo}, tipo, severidad, valor\_registrado, atendida, fecha\_atencion, \fk{id\_operario}{Operario})}
+\relacion{\textsc{Cosecha}(\pk{id\_cosecha}, \fk{id\_campania}{Campania}, \fk{id\_operario}{Operario}, fecha, cantidad\_kg, categoria, humedad\_producto\_pct, precio\_kg\_soles)}
+\relacion{\textsc{Insumo}(\pk{id\_insumo}, nombre, tipo, unidad, costo\_unitario, periodo\_carencia\_dias)}
+\relacion{\textsc{Aplicacion\_Insumo}(\pk{\fk{id\_parcela}{Zona\_Manejo}}, \pk{\fk{num\_zona}{Zona\_Manejo}}, \pk{\fk{id\_insumo}{Insumo}}, \pk{\fk{id\_operario}{Operario}}, \pk{fecha\_hora}, dosis, metodo)}
+\relacion{\textsc{Mantenimiento}(\pk{\fk{id\_dispositivo}{Dispositivo}}, \pk{\fk{id\_operario}{Operario}}, \pk{fecha}, tipo, observacion, costo)}
 \end{itemize}
 
 \subsection{Especificaciones de transformación}
 
 \subsubsection{Entidades}
 
-Cada entidad fuerte se convirtió en una tabla con sus atributos simples: \tb{Fundo}, \tb{Parcela}, \tb{Cultivo}, \tb{Operario}, \tb{Campania}, \tb{Sistema\_Riego}, \tb{Dispositivo}, \tb{Evento\_Riego}, \tb{Alerta}, \tb{Cosecha} e \tb{Insumo}. Los atributos compuestos se aplanaron: la ubicación del fundo quedó en tres columnas y cada rango óptimo del cultivo en un par mínimo--máximo con un \tb{CHECK} que exige mínimo menor que máximo.
+Cada entidad fuerte se convirtió en una tabla con sus atributos simples: \tb{Fundo}, \tb{Parcela}, \tb{Cultivo}, \tb{Operario}, \tb{Campania}, \tb{Sistema\_Riego}, \tb{Dispositivo}, \tb{Evento\_Riego}, \tb{Alerta}, \tb{Cosecha} e \tb{Insumo}. Los atributos compuestos se aplanaron: la ubicación del fundo quedó en tres columnas y cada rango óptimo del cultivo en un par mínimo--máximo.
 
-Como claves usamos identificadores numéricos generados por secuencia (\tb{SERIAL}) y no las claves naturales, porque los códigos de la empresa cambian o se repiten. Se mantienen claves candidatas mediante restricciones \tb{UNIQUE}: el nombre y departamento del fundo; el fundo y código de parcela; el DNI, número de serie y nombre común; la parcela y fecha de siembra; la parcela, zona y hora de inicio del riego; y el sensor, hora y tipo de alerta.
+Como claves usamos identificadores numéricos generados por secuencia (\tb{SERIAL}) y no las claves naturales, porque los códigos de la empresa cambian o se repiten.
 
 \subsubsection{Entidades débiles}
 
-Una entidad débil se transforma en una tabla cuya clave primaria une la clave de la entidad propietaria con la clave parcial. La relación identificadora no genera tabla: queda absorbida en la clave foránea hacia la propietaria, declarada con \tb{ON DELETE CASCADE} porque la entidad débil no puede existir sin su dueña.
+Una entidad débil se transforma en una tabla cuya clave primaria une la clave de la entidad propietaria con la clave parcial. La relación identificadora no genera tabla: queda absorbida en la clave foránea hacia la propietaria.
 
 \begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
 \item \tb{Zona\_Manejo}(\pk{id\_parcela}, \pk{num\_zona}, \ldots): \tb{id\_parcela} es a la vez parte de la clave y clave foránea hacia \tb{Parcela}.
@@ -388,8 +358,8 @@ Para la especialización de \tb{Dispositivo} evaluamos las tres estrategias habi
 \toprule
 \textbf{Estrategia} & \textbf{A favor} & \textbf{En contra} \\
 \midrule
-Una sola tabla con columna discriminadora & Ninguna unión para leer un equipo. & Columnas nulas para los atributos de la otra subclase; no se puede exigir \tb{NOT NULL} al tipo de sensor ni al sistema del controlador; la lectura no podría apuntar solo a sensores. \\
-Tabla para la superclase y una por subclase (elegida) & Cada subclase declara sus propias restricciones y relaciones; las claves foráneas son precisas. & Ver un equipo completo exige una unión por clave primaria, que es barata. \\
+Una sola tabla con columna discriminadora & Ninguna unión para leer un equipo. & Columnas vacías para los atributos de la otra subclase; la lectura no podría apuntar solo a sensores. \\
+Tabla para la superclase y una por subclase (elegida) & Cada subclase declara sus propios atributos y relaciones; las claves foráneas son precisas. & Ver un equipo completo exige una unión por clave primaria, que es barata. \\
 Solo tablas para las subclases & Sin uniones dentro de cada tipo. & Los atributos comunes se repiten; \tb{Mantenimiento} necesitaría dos claves foráneas; no se puede garantizar un número de serie único entre ambas tablas. \\
 \bottomrule
 \end{tabularx}
@@ -401,7 +371,7 @@ En la estrategia elegida, la clave primaria de \tb{Sensor} y de \tb{Controlador}
 
 \subsubsection{Relaciones binarias}
 
-Las relaciones uno a muchos se representan con una clave foránea en el lado ``muchos''. Si la participación de ese lado es total, la columna es \tb{NOT NULL}; si es parcial, admite nulos. La política de borrado sigue el significado de cada vínculo: \tb{CASCADE} en las dependencias de existencia, \tb{RESTRICT} donde un borrado dejaría sin historia datos del negocio y \tb{SET NULL} en las referencias opcionales a operarios.
+Las relaciones uno a muchos se representan con una clave foránea en el lado ``muchos''. La participación total o parcial se indica en el modelo entidad-relación.
 
 \begin{table}[H]
 \centering\small
@@ -409,19 +379,19 @@ Las relaciones uno a muchos se representan con una clave foránea en el lado ``m
 \toprule
 \textbf{Relación} & \textbf{Tipo} & \textbf{Representación relacional} \\
 \midrule
-tiene (Fundo--Parcela) & 1:N & \tb{Parcela.id\_fundo} \tb{NOT NULL} \\
+tiene (Fundo--Parcela) & 1:N & \tb{Parcela.id\_fundo} \\
 labora en (Fundo--Operario) & 1:N & \tb{Operario.id\_fundo} \\
-se siembra en (Parcela--Campaña) & 1:N & \tb{Campania.id\_parcela} \tb{NOT NULL} \\
-corresponde a (Cultivo--Campaña) & 1:N & \tb{Campania.id\_cultivo} \tb{NOT NULL} \\
-abastece (Parcela--Sistema) & 1:N & \tb{Sistema\_Riego.id\_parcela} \tb{NOT NULL} \\
-instalado en (Zona--Dispositivo) & 1:N & \tb{Dispositivo(id\_parcela, num\_zona)} \tb{NOT NULL} \\
-acciona (Sistema--Controlador) & 1:N & \tb{Controlador.id\_sistema} \tb{NOT NULL} \\
-origina (Lectura--Alerta) & 1:N & \tb{Alerta(id\_dispositivo, fecha\_hora)} \tb{NOT NULL} \\
+se siembra en (Parcela--Campaña) & 1:N & \tb{Campania.id\_parcela} \\
+corresponde a (Cultivo--Campaña) & 1:N & \tb{Campania.id\_cultivo} \\
+abastece (Parcela--Sistema) & 1:N & \tb{Sistema\_Riego.id\_parcela} \\
+instalado en (Zona--Dispositivo) & 1:N & \tb{Dispositivo(id\_parcela, num\_zona)} \\
+acciona (Sistema--Controlador) & 1:N & \tb{Controlador.id\_sistema} \\
+origina (Lectura--Alerta) & 1:N & \tb{Alerta(id\_dispositivo, fecha\_hora)} \\
 atiende (Operario--Alerta) & 1:N & \tb{Alerta.id\_operario}, admite nulos \\
-ejecuta (Sistema--Evento) & 1:N & \tb{Evento\_Riego.id\_sistema} \tb{NOT NULL} \\
-riega (Zona--Evento) & 1:N & \tb{Evento\_Riego(id\_parcela, num\_zona)} \tb{NOT NULL} \\
+ejecuta (Sistema--Evento) & 1:N & \tb{Evento\_Riego.id\_sistema} \\
+riega (Zona--Evento) & 1:N & \tb{Evento\_Riego(id\_parcela, num\_zona)} \\
 opera (Operario--Evento) & 1:N & \tb{Evento\_Riego.id\_operario}, admite nulos \\
-produce (Campaña--Cosecha) & 1:N & \tb{Cosecha.id\_campania} \tb{NOT NULL} \\
+produce (Campaña--Cosecha) & 1:N & \tb{Cosecha.id\_campania} \\
 recoge (Operario--Cosecha) & 1:N & \tb{Cosecha.id\_operario}, admite nulos \\
 mantiene (Operario--Dispositivo) & N:M & Tabla \tb{Mantenimiento} con PK (\tb{id\_dispositivo}, \tb{id\_operario}, \tb{fecha}) \\
 se divide en, registra & 1:N ident. & Absorbidas en la clave de la entidad débil \\
@@ -438,7 +408,7 @@ La relación \emph{aplica} se transformó en la tabla \tb{Aplicacion\_Insumo}, c
 
 \subsection{Diccionario de datos}
 
-El diccionario se elaboró a partir del modelo relacional propuesto. Para cada tabla se indican el tipo de dato, si admite nulos, su papel en las claves y su significado. \tb{UQ comp.} indica que la columna forma parte de una restricción única compuesta. Debajo de cada tabla se listan sus restricciones \tb{CHECK}.
+El diccionario se elaboró a partir del modelo relacional propuesto. Para cada tabla se indican el tipo de dato, si admite nulos, su papel en las claves y su significado.
 
 \subsubsection*{Fundo}
 Predio agrícola de la empresa, ubicado en un distrito del Perú.
@@ -449,8 +419,8 @@ Predio agrícola de la empresa, ubicado en un distrito del Perú.
 \midrule
 \endhead
 \texttt{id\_fundo} & SERIAL & No & PK & Identificador del fundo. \\
-\texttt{nombre} & VARCHAR(60) & No & UQ comp. & Nombre comercial del fundo. \\
-\texttt{departamento} & VARCHAR(40) & No & UQ comp. & Departamento donde se ubica. \\
+\texttt{nombre} & VARCHAR(60) & No &  & Nombre comercial del fundo. \\
+\texttt{departamento} & VARCHAR(40) & No &  & Departamento donde se ubica. \\
 \texttt{provincia} & VARCHAR(40) & No &  & Provincia donde se ubica. \\
 \texttt{distrito} & VARCHAR(40) & Sí &  & Distrito donde se ubica. \\
 \texttt{area\_total\_ha} & NUMERIC(8,2) & No &  & Superficie total del predio en hectáreas. \\
@@ -460,7 +430,6 @@ Predio agrícola de la empresa, ubicado en un distrito del Perú.
 \bottomrule
 \end{longtable}}
 {\footnotesize La combinación de \texttt{nombre} y \texttt{departamento} es única.\par}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_fundo\_area}: \tb{((area\_total\_ha > (0)))}; \tb{ck\_fundo\_lat}: \tb{(((latitud >= ('-19')) AND (latitud <= (1))))}; \tb{ck\_fundo\_lon}: \tb{(((longitud >= ('-82')) AND (longitud <= ('-68'))))}\par}
 \medskip
 \subsubsection*{Parcela}
 Unidad productiva dentro de un fundo; es la base de cada campaña.
@@ -471,8 +440,8 @@ Unidad productiva dentro de un fundo; es la base de cada campaña.
 \midrule
 \endhead
 \texttt{id\_parcela} & SERIAL & No & PK & Identificador de la parcela. \\
-\texttt{id\_fundo} & INTEGER & No & FK $\to$ Fundo, UQ comp. & Fundo al que pertenece. \\
-\texttt{codigo\_parcela} & VARCHAR(15) & No & UQ comp. & Código interno, único dentro del fundo (P-001, P-002...). \\
+\texttt{id\_fundo} & INTEGER & No & FK $\to$ Fundo & Fundo al que pertenece. \\
+\texttt{codigo\_parcela} & VARCHAR(15) & No &  & Código interno de la parcela (P-001, P-002...). \\
 \texttt{area\_ha} & NUMERIC(7,2) & No &  & Área cultivable en hectáreas. \\
 \texttt{tipo\_suelo} & VARCHAR(20) & No &  & Clase textural del suelo. \\
 \texttt{pendiente\_pct} & NUMERIC(4,1) & Sí &  & Pendiente media del terreno en porcentaje. \\
@@ -480,7 +449,6 @@ Unidad productiva dentro de un fundo; es la base de cada campaña.
 \bottomrule
 \end{longtable}}
 {\footnotesize La combinación de \texttt{id\_fundo} y \texttt{codigo\_parcela} es única.\par}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_parcela\_area}: \tb{((area\_ha > (0)))}; \tb{ck\_parcela\_pend}: \tb{(((pendiente\_pct >= (0)) AND (pendiente\_pct <= (100))))}; \tb{ck\_parcela\_suelo}: \tb{(((tipo\_suelo) = ANY ((ARRAY['Arenoso', 'Franco', 'Franco arenoso', 'Franco arcilloso', 'Arcilloso']))))}\par}
 \medskip
 \subsubsection*{Zona\_Manejo}
 Subdivisión de una parcela con manejo homogéneo de riego y nutrición (entidad débil).
@@ -496,7 +464,6 @@ Subdivisión de una parcela con manejo homogéneo de riego y nutrición (entidad
 \texttt{descripcion} & VARCHAR(80) & Sí &  & Descripción libre de la zona. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_zona\_area}: \tb{((area\_ha > (0)))}; \tb{ck\_zona\_num}: \tb{((num\_zona > 0))}\par}
 \medskip
 \subsubsection*{Cultivo}
 Catálogo de especies con sus rangos agronómicos óptimos.
@@ -507,7 +474,7 @@ Catálogo de especies con sus rangos agronómicos óptimos.
 \midrule
 \endhead
 \texttt{id\_cultivo} & SERIAL & No & PK & Identificador del cultivo. \\
-\texttt{nombre\_comun} & VARCHAR(40) & No & UQ & Nombre comercial de la especie o variedad. \\
+\texttt{nombre\_comun} & VARCHAR(40) & No &  & Nombre comercial de la especie o variedad. \\
 \texttt{nombre\_cientifico} & VARCHAR(60) & Sí &  & Nombre científico. \\
 \texttt{ciclo\_dias} & INTEGER & No &  & Duración típica de la campaña en días. \\
 \texttt{humedad\_optima\_min} & NUMERIC(5,2) & No &  & Humedad volumétrica mínima recomendada (\%). \\
@@ -517,7 +484,6 @@ Catálogo de especies con sus rangos agronómicos óptimos.
 \texttt{ce\_maxima\_ds\_m} & NUMERIC(5,2) & Sí &  & Conductividad eléctrica máxima tolerada (dS/m). \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_cultivo\_cic}: \tb{((ciclo\_dias > 0))}; \tb{ck\_cultivo\_hum}: \tb{((humedad\_optima\_min < humedad\_optima\_max))}; \tb{ck\_cultivo\_ph}: \tb{(((ph\_optimo\_min < ph\_optimo\_max) AND (ph\_optimo\_min >= (0)) AND (ph\_optimo\_max <= (14))))}\par}
 \medskip
 \subsubsection*{Operario}
 Personal de campo que riega, aplica insumos, cosecha y mantiene equipos.
@@ -528,7 +494,7 @@ Personal de campo que riega, aplica insumos, cosecha y mantiene equipos.
 \midrule
 \endhead
 \texttt{id\_operario} & SERIAL & No & PK & Identificador del operario. \\
-\texttt{dni} & CHARACTER(8) & No & UQ & Documento Nacional de Identidad (8 dígitos, único). \\
+\texttt{dni} & CHARACTER(8) & No &  & Documento Nacional de Identidad (8 dígitos). \\
 \texttt{nombre} & VARCHAR(40) & No &  & Nombres. \\
 \texttt{apellido} & VARCHAR(40) & No &  & Apellidos. \\
 \texttt{rol} & VARCHAR(25) & No &  & Función que desempeña en el fundo. \\
@@ -537,7 +503,6 @@ Personal de campo que riega, aplica insumos, cosecha y mantiene equipos.
 \texttt{fecha\_ingreso} & DATE & Sí &  & Fecha de ingreso a la empresa. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_operario\_dni}: \tb{((dni \textasciitilde{} '\textasciicircum{}[0-9]\{8\}\$'))}; \tb{ck\_operario\_rol}: \tb{(((rol) = ANY ((ARRAY['Tecnico de campo', 'Ingeniero agronomo', 'Operador de riego', 'Supervisor']))))}; \tb{ck\_operario\_tel}: \tb{(((telefono IS NULL) OR ((telefono) \textasciitilde{} '\textasciicircum{}[0-9]\{9\}\$')))}\par}
 \medskip
 \subsubsection*{Campania}
 Periodo de siembra de un cultivo en una parcela.
@@ -548,16 +513,15 @@ Periodo de siembra de un cultivo en una parcela.
 \midrule
 \endhead
 \texttt{id\_campania} & SERIAL & No & PK & Identificador de la campaña. \\
-\texttt{id\_parcela} & INTEGER & No & FK $\to$ Parcela, UQ comp. & Parcela sembrada. \\
+\texttt{id\_parcela} & INTEGER & No & FK $\to$ Parcela & Parcela sembrada. \\
 \texttt{id\_cultivo} & INTEGER & No & FK $\to$ Cultivo & Cultivo sembrado. \\
-\texttt{fecha\_siembra} & DATE & No & UQ comp. & Fecha de siembra o inicio de campaña. \\
+\texttt{fecha\_siembra} & DATE & No &  & Fecha de siembra o inicio de campaña. \\
 \texttt{fecha\_fin\_estimada} & DATE & No &  & Fecha estimada de término (siembra + ciclo). \\
 \texttt{densidad\_plantas\_ha} & INTEGER & Sí &  & Plantas por hectárea. \\
 \texttt{estado} & VARCHAR(15) & No &  & Planificada, En curso, Cerrada o Perdida. Por defecto: \texttt{'En curso'}. \\
 \texttt{rendimiento\_kg\_ha} & NUMERIC(10,2) & No &  & Atributo derivado: kg cosechados / área. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_campania\_dens}: \tb{(((densidad\_plantas\_ha IS NULL) OR (densidad\_plantas\_ha > 0)))}; \tb{ck\_campania\_est}: \tb{(((estado) = ANY ((ARRAY['Planificada', 'En curso', 'Cerrada', 'Perdida']))))}; \tb{ck\_campania\_fech}: \tb{((fecha\_fin\_estimada > fecha\_siembra))}; \tb{ck\_campania\_rend}: \tb{((rendimiento\_kg\_ha >= (0)))}\par}
 \medskip
 \subsubsection*{Sistema\_Riego}
 Infraestructura de riego instalada en una parcela.
@@ -576,7 +540,6 @@ Infraestructura de riego instalada en una parcela.
 \texttt{estado} & VARCHAR(15) & No &  & Operativo, Averiado o Fuera de servicio. Por defecto: \texttt{'Operativo'}. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_sistema\_caudal}: \tb{((caudal\_nominal\_lph > (0)))}; \tb{ck\_sistema\_estado}: \tb{(((estado) = ANY ((ARRAY['Operativo', 'Averiado', 'Fuera de servicio']))))}; \tb{ck\_sistema\_fuente}: \tb{(((fuente\_agua) = ANY ((ARRAY['Pozo', 'Canal', 'Reservorio', 'Rio']))))}; \tb{ck\_sistema\_tipo}: \tb{(((tipo) = ANY ((ARRAY['Goteo', 'Aspersion', 'Microaspersion', 'Gravedad tecnificada']))))}\par}
 \medskip
 \subsubsection*{Dispositivo}
 Superclase de todo equipo IoT instalado en campo.
@@ -587,7 +550,7 @@ Superclase de todo equipo IoT instalado en campo.
 \midrule
 \endhead
 \texttt{id\_dispositivo} & SERIAL & No & PK & Identificador del dispositivo (heredado por las subclases). \\
-\texttt{codigo\_serie} & VARCHAR(20) & No & UQ & Número de serie del fabricante (único). \\
+\texttt{codigo\_serie} & VARCHAR(20) & No &  & Número de serie del fabricante. \\
 \texttt{modelo} & VARCHAR(30) & No &  & Modelo comercial. \\
 \texttt{fabricante} & VARCHAR(30) & Sí &  & Fabricante. \\
 \texttt{fecha\_instalacion} & DATE & No &  & Fecha de instalación en campo. \\
@@ -596,7 +559,6 @@ Superclase de todo equipo IoT instalado en campo.
 \texttt{num\_zona} & SMALLINT & No & FK $\to$ Zona\_Manejo & Zona de manejo donde está instalado. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_dispositivo\_est}: \tb{(((estado) = ANY ((ARRAY['Activo', 'Inactivo', 'Mantenimiento', 'Baja']))))}\par}
 \medskip
 \subsubsection*{Sensor}
 Subclase de Dispositivo que mide variables del suelo.
@@ -615,7 +577,6 @@ Subclase de Dispositivo que mide variables del suelo.
 \texttt{rango\_max} & NUMERIC(7,2) & Sí &  & Límite superior de medición declarado por el fabricante. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_sensor\_frec}: \tb{((frecuencia\_min > 0))}; \tb{ck\_sensor\_prof}: \tb{(((profundidad\_cm >= 0) AND (profundidad\_cm <= 200)))}; \tb{ck\_sensor\_rango}: \tb{(((rango\_min IS NULL) OR (rango\_max IS NULL) OR (rango\_min < rango\_max)))}; \tb{ck\_sensor\_tipo}: \tb{(((tipo\_sensor) = ANY ((ARRAY['Humedad', 'Multiparametro', 'pH', 'Conductividad', 'Temperatura']))))}\par}
 \medskip
 \subsubsection*{Controlador}
 Subclase de Dispositivo que abre y cierra válvulas de un sistema de riego.
@@ -631,7 +592,6 @@ Subclase de Dispositivo que abre y cierra válvulas de un sistema de riego.
 \texttt{tipo\_valvula} & VARCHAR(20) & No &  & Solenoide, hidráulica o manual motorizada. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_controlador\_cau}: \tb{((caudal\_max\_lps > (0)))}; \tb{ck\_controlador\_val}: \tb{(((tipo\_valvula) = ANY ((ARRAY['Solenoide', 'Hidraulica', 'Manual motorizada']))))}\par}
 \medskip
 \subsubsection*{Lectura\_Suelo}
 Medición enviada por un sensor en un instante (entidad débil).
@@ -650,7 +610,6 @@ Medición enviada por un sensor en un instante (entidad débil).
 \texttt{bateria\_pct} & SMALLINT & Sí &  & Carga de batería del equipo al enviar (\%). \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_lectura\_bat}: \tb{(((bateria\_pct IS NULL) OR ((bateria\_pct >= 0) AND (bateria\_pct <= 100))))}; \tb{ck\_lectura\_ce}: \tb{(((conductividad\_ds\_m IS NULL) OR (conductividad\_ds\_m >= (0))))}; \tb{ck\_lectura\_hum}: \tb{(((humedad\_pct IS NULL) OR ((humedad\_pct >= (0)) AND (humedad\_pct <= (100)))))}; \tb{ck\_lectura\_ph}: \tb{(((ph IS NULL) OR ((ph >= (0)) AND (ph <= (14)))))}; \tb{ck\_lectura\_temp}: \tb{(((temperatura\_c IS NULL) OR ((temperatura\_c >= ('-10')) AND (temperatura\_c <= (60)))))}\par}
 \medskip
 \subsubsection*{Evento\_Riego}
 Riego ejecutado sobre una zona por un sistema.
@@ -662,16 +621,15 @@ Riego ejecutado sobre una zona por un sistema.
 \endhead
 \texttt{id\_evento} & BIGSERIAL & No & PK & Identificador del evento. \\
 \texttt{id\_sistema} & INTEGER & No & FK $\to$ Sistema\_Riego & Sistema de riego utilizado. \\
-\texttt{id\_parcela} & INTEGER & No & FK $\to$ Zona\_Manejo, UQ comp. & Parcela de la zona regada. \\
-\texttt{num\_zona} & SMALLINT & No & FK $\to$ Zona\_Manejo, UQ comp. & Zona regada. \\
+\texttt{id\_parcela} & INTEGER & No & FK $\to$ Zona\_Manejo & Parcela de la zona regada. \\
+\texttt{num\_zona} & SMALLINT & No & FK $\to$ Zona\_Manejo & Zona regada. \\
 \texttt{id\_operario} & INTEGER & Sí & FK $\to$ Operario & Operario que lo ejecutó o supervisó (nulo si fue automático sin supervisión). \\
-\texttt{fecha\_hora\_inicio} & TIMESTAMP & No & UQ comp. & Inicio del riego. \\
+\texttt{fecha\_hora\_inicio} & TIMESTAMP & No &  & Inicio del riego. \\
 \texttt{duracion\_min} & INTEGER & No &  & Duración en minutos (máximo 720). \\
 \texttt{volumen\_litros} & NUMERIC(10,2) & No &  & Volumen aplicado; si no se reporta, se obtiene del caudal y la duración. \\
 \texttt{modo} & VARCHAR(12) & No &  & Automatico, Manual o Programado. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_evento\_dur}: \tb{(((duracion\_min > 0) AND (duracion\_min <= 720)))}; \tb{ck\_evento\_modo}: \tb{(((modo) = ANY ((ARRAY['Automatico', 'Manual', 'Programado']))))}; \tb{ck\_evento\_vol}: \tb{((volumen\_litros >= (0)))}\par}
 \medskip
 \subsubsection*{Alerta}
 Aviso generado a partir de una lectura fuera de rango.
@@ -682,9 +640,9 @@ Aviso generado a partir de una lectura fuera de rango.
 \midrule
 \endhead
 \texttt{id\_alerta} & BIGSERIAL & No & PK & Identificador de la alerta. \\
-\texttt{id\_dispositivo} & INTEGER & No & FK $\to$ Lectura\_Suelo, UQ comp. & Sensor de la lectura que originó la alerta. \\
-\texttt{fecha\_hora} & TIMESTAMP & No & FK $\to$ Lectura\_Suelo, UQ comp. & Instante de la lectura que originó la alerta. \\
-\texttt{tipo} & VARCHAR(25) & No & UQ comp. & Humedad baja, Humedad alta, pH fuera de rango, Salinidad alta o Bateria baja. \\
+\texttt{id\_dispositivo} & INTEGER & No & FK $\to$ Lectura\_Suelo & Sensor de la lectura que originó la alerta. \\
+\texttt{fecha\_hora} & TIMESTAMP & No & FK $\to$ Lectura\_Suelo & Instante de la lectura que originó la alerta. \\
+\texttt{tipo} & VARCHAR(25) & No &  & Humedad baja, Humedad alta, pH fuera de rango, Salinidad alta o Bateria baja. \\
 \texttt{severidad} & VARCHAR(10) & No &  & Baja, Media, Alta o Critica. \\
 \texttt{valor\_registrado} & NUMERIC(7,2) & Sí &  & Valor que disparó la alerta. \\
 \texttt{atendida} & BOOLEAN & No &  & Indica si la alerta fue atendida. Por defecto: \texttt{false}. \\
@@ -692,7 +650,6 @@ Aviso generado a partir de una lectura fuera de rango.
 \texttt{id\_operario} & INTEGER & Sí & FK $\to$ Operario & Operario que la atendió. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_alerta\_aten}: \tb{((((atendida = false) AND (fecha\_atencion IS NULL)) OR ((atendida = true) AND (fecha\_atencion IS NOT NULL))))}; \tb{ck\_alerta\_sev}: \tb{(((severidad) = ANY ((ARRAY['Baja', 'Media', 'Alta', 'Critica']))))}; \tb{ck\_alerta\_tipo}: \tb{(((tipo) = ANY ((ARRAY['Humedad baja', 'Humedad alta', 'pH fuera de rango', 'Salinidad alta', 'Bateria baja']))))}\par}
 \medskip
 \subsubsection*{Cosecha}
 Registro de un pase de cosecha de una campaña.
@@ -712,7 +669,6 @@ Registro de un pase de cosecha de una campaña.
 \texttt{precio\_kg\_soles} & NUMERIC(7,2) & Sí &  & Precio de venta estimado por kilogramo (S/). \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_cosecha\_cat}: \tb{(((categoria) = ANY ((ARRAY['Primera', 'Segunda', 'Tercera', 'Descarte']))))}; \tb{ck\_cosecha\_hum}: \tb{(((humedad\_producto\_pct IS NULL) OR ((humedad\_producto\_pct >= (0)) AND (humedad\_producto\_pct <= (100)))))}; \tb{ck\_cosecha\_kg}: \tb{((cantidad\_kg > (0)))}; \tb{ck\_cosecha\_prec}: \tb{(((precio\_kg\_soles IS NULL) OR (precio\_kg\_soles >= (0))))}\par}
 \medskip
 \subsubsection*{Insumo}
 Catálogo de fertilizantes, enmiendas y productos fitosanitarios.
@@ -723,14 +679,13 @@ Catálogo de fertilizantes, enmiendas y productos fitosanitarios.
 \midrule
 \endhead
 \texttt{id\_insumo} & SERIAL & No & PK & Identificador del insumo. \\
-\texttt{nombre} & VARCHAR(50) & No & UQ & Nombre comercial y concentración. \\
+\texttt{nombre} & VARCHAR(50) & No &  & Nombre comercial y concentración. \\
 \texttt{tipo} & VARCHAR(20) & No &  & Fertilizante, Fungicida, Insecticida, Enmienda o Bioestimulante. \\
 \texttt{unidad} & VARCHAR(10) & No &  & Unidad de dosificación (kg o L). \\
 \texttt{costo\_unitario} & NUMERIC(8,2) & No &  & Costo por unidad (S/). \\
 \texttt{periodo\_carencia\_dias} & SMALLINT & Sí &  & Días mínimos entre la aplicación y la cosecha. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_insumo\_car}: \tb{(((periodo\_carencia\_dias IS NULL) OR (periodo\_carencia\_dias >= 0)))}; \tb{ck\_insumo\_cost}: \tb{((costo\_unitario >= (0)))}; \tb{ck\_insumo\_tipo}: \tb{(((tipo) = ANY ((ARRAY['Fertilizante', 'Fungicida', 'Insecticida', 'Enmienda', 'Bioestimulante']))))}\par}
 \medskip
 \subsubsection*{Aplicacion\_Insumo}
 Relación ternaria: un operario aplica un insumo en una zona de manejo.
@@ -749,7 +704,6 @@ Relación ternaria: un operario aplica un insumo en una zona de manejo.
 \texttt{metodo} & VARCHAR(20) & No &  & Fertirriego, Foliar, Al suelo o Drench. \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_aplicacion\_dos}: \tb{((dosis > (0)))}; \tb{ck\_aplicacion\_met}: \tb{(((metodo) = ANY ((ARRAY['Fertirriego', 'Foliar', 'Al suelo', 'Drench']))))}\par}
 \medskip
 \subsubsection*{Mantenimiento}
 Relación N:M entre operarios y dispositivos que atienden.
@@ -767,6 +721,5 @@ Relación N:M entre operarios y dispositivos que atienden.
 \texttt{costo} & NUMERIC(8,2) & Sí &  & Costo de la intervención (S/). \\
 \bottomrule
 \end{longtable}}
-{\footnotesize\textbf{Restricciones CHECK:} \tb{ck\_mantenimiento\_cost}: \tb{(((costo IS NULL) OR (costo >= (0))))}; \tb{ck\_mantenimiento\_tipo}: \tb{(((tipo) = ANY ((ARRAY['Preventivo', 'Correctivo', 'Calibracion']))))}\par}
 
 \end{document}
