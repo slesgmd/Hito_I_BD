@@ -1,7 +1,7 @@
 \documentclass[11pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
+\usepackage{mathptmx}
 \usepackage[spanish,es-noshorthands,es-tabla,es-nodecimaldot]{babel}
 \usepackage[margin=2.3cm]{geometry}
 \usepackage{graphicx,float,booktabs,longtable,tabularx,array,multirow}
@@ -18,8 +18,15 @@
 \setlength{\parindent}{0pt}
 \renewcommand{\arraystretch}{1.12}
 \captionsetup{font=small,labelfont=bf}
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}{-3.5ex \@plus -1ex \@minus -.2ex}{2.3ex \@plus .2ex}{\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}{-3.25ex\@plus -1ex \@minus -.2ex}{1.5ex \@plus .2ex}{\normalfont\large\bfseries}}
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}{-3.25ex\@plus -1ex \@minus -.2ex}{1.5ex \@plus .2ex}{\normalfont\normalsize\bfseries}}
+\makeatother
 \pagestyle{fancy}\fancyhf{}
 \lhead{\small CS2041 Base de Datos I}\rhead{\small Agricultura de precisión e IoT}
+\setlength{\headheight}{14pt}
+\renewcommand{\headrulewidth}{0.4pt}
 \cfoot{\small\thepage}
 
 \begin{document}
@@ -27,26 +34,21 @@
 \hypersetup{pageanchor=false}
 \begin{titlepage}
 \centering
-{\large UNIVERSIDAD DE INGENIERÍA Y TECNOLOGÍA\par}
-\vspace{0.3cm}
-{\large UTEC\par}
-\vspace{2.2cm}
+\vspace*{1.2cm}
+\includegraphics[width=4.1cm]{Utec.png}\par
+\vspace{2.5cm}
 {\normalsize Curso: Base de Datos I (CS2041), Laboratorio 14\par}
-\vspace{0.3cm}
-{\normalsize Ciclo 2026-2\par}
-\vspace{2cm}
-{\LARGE\bfseries Hito I\par}
-\vspace{0.4cm}
-{\Large Agricultura de Precisión y Sensores IoT Agropecuarios\par}
-\vspace{2.4cm}
-{\large Integrantes\par}
+\vspace{0.35cm}
+{\normalsize Docente: Ojeda Rios, Brenner Humberto\par}
+\vspace{0.35cm}
+{\normalsize Hito I -- Ciclo 2026-2\par}
+\vspace{1.65cm}
+{\large\bfseries Agricultura de Precisión y Sensores IoT Agropecuarios\par}
+\vspace{1.9cm}
+{\normalsize\bfseries Integrantes\par}
 \vspace{0.3cm}
 Lescano Garamendi, Juan Carlos Sebastián : 202510447\par
 Rojas Meza, Kiara Luz : 202510620\par
-\vspace{1.6cm}
-{\large Profesor\par}
-\vspace{0.3cm}
-Ojeda Rios, Brenner Humberto\par
 \vfill
 {\normalsize Lima, Perú\par}
 \end{titlepage}
@@ -221,7 +223,7 @@ El objetivo general de esta etapa es diseñar una base de datos que integre la i
 
 Los objetivos específicos son:
 \begin{enumerate}[leftmargin=1.6em,itemsep=0.1em]
-\item Modelar el dominio con una jerarquía Is-A, entidades débiles y una relación ternaria, y transformarlo a un esquema relacional en tercera forma normal.
+\item Modelar el dominio con una jerarquía Is-A, entidades débiles y una relación ternaria, y transformarlo a un esquema relacional que represente sus claves y restricciones.
 \item Especificar las restricciones de dominio, unicidad, participación y referencia que debe respetar el modelo.
 \item Definir cómo se cargarían, actualizarían y consultarían los principales datos del sistema.
 \item Establecer los volúmenes esperados y los tiempos de respuesta deseados para las operaciones más frecuentes.
@@ -229,11 +231,12 @@ Los objetivos específicos son:
 
 \subsection{Referencias del proyecto}
 
-Los rangos óptimos por cultivo y la relación entre humedad del suelo y estrés hídrico se tomaron de la guía FAO-56 y de fichas técnicas públicas. Los modelos de sensores y controladores corresponden a equipos comerciales reales. Para el diseño del modelo seguimos la bibliografía del curso y la documentación oficial de PostgreSQL.
+Los rangos óptimos por cultivo y la relación entre humedad del suelo y estrés hídrico se tomaron de la guía FAO-56 y de fichas técnicas públicas. Los modelos de sensores y controladores corresponden a equipos comerciales reales. Para el diseño del modelo seguimos la bibliografía del curso, en particular a Ramakrishnan y Gehrke (2003), y la documentación oficial de PostgreSQL.
 
 \begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
 \item Allen, R., Pereira, L., Raes, D. y Smith, M. (1998). \textit{Crop evapotranspiration: guidelines for computing crop water requirements}. FAO Irrigation and Drainage Paper 56.
 \item Garcia-Molina, H., Ullman, J. y Widom, J. (2009). \textit{Database Systems: The Complete Book} (2.ª ed.). Pearson.
+\item Ramakrishnan, R. y Gehrke, J. (2003). \textit{Database Management Systems} (3.ª ed., International Edition). McGraw-Hill.
 \item Elmasri, R. y Navathe, S. (2016). \textit{Fundamentals of Database Systems} (7.ª ed.). Pearson.
 \item PostgreSQL Global Development Group. \textit{PostgreSQL 16 Documentation}. \url{https://www.postgresql.org/docs/16/}
 \item Autoridad Nacional del Agua. \url{https://www.gob.pe/ana}
@@ -352,7 +355,7 @@ El esquema tiene 17 relaciones: 15 provienen de las entidades del modelo concept
 \item \textsc{Alerta}(\pk{id\_alerta}, \fk{id\_dispositivo}{Lectura\_Suelo}, \fk{fecha\_hora}{Lectura\_Suelo}, tipo, severidad, valor\_registrado, atendida, fecha\_atencion, \fk{id\_operario}{Operario}), UNIQUE(id\_dispositivo, fecha\_hora, tipo)
 \item \textsc{Cosecha}(\pk{id\_cosecha}, \fk{id\_campania}{Campania}, \fk{id\_operario}{Operario}, fecha, cantidad\_kg, categoria, humedad\_producto\_pct, precio\_kg\_soles)
 \item \textsc{Insumo}(\pk{id\_insumo}, nombre, tipo, unidad, costo\_unitario, periodo\_carencia\_dias)
-\item \textsc{Aplicacion\_Insumo}(\pk{\fk{id\_parcela}{Zona\_Manejo}}, \pk{\fk{num\_zona}{Zona\_Manejo}}, \pk{\fk{id\_insumo}{Insumo}},\linebreak \pk{\fk{id\_operario}{Operario}}, \pk{fecha\_hora}, dosis, metodo)
+\item \textsc{Aplicacion\_Insumo}(\pk{\fk{id\_parcela}{Zona\_Manejo}}, \pk{\fk{num\_zona}{Zona\_Manejo}},\linebreak \hspace*{1em}\pk{\fk{id\_insumo}{Insumo}}, \pk{\fk{id\_operario}{Operario}},\linebreak \hspace*{1em}\pk{fecha\_hora}, dosis, metodo)
 \item \textsc{Mantenimiento}(\pk{\fk{id\_dispositivo}{Dispositivo}}, \pk{\fk{id\_operario}{Operario}},\linebreak \pk{fecha}, tipo, observacion, costo)
 \end{itemize}
 
@@ -431,17 +434,7 @@ En \tb{Mantenimiento} la fecha forma parte de la clave porque el mismo técnico 
 
 \subsubsection{Relaciones ternarias}
 
-La relación \emph{aplica} se transformó en la tabla \tb{Aplicacion\_Insumo}, con una clave foránea hacia cada participante: la zona (compuesta), el insumo y el operario. Por ser de muchos a muchos a muchos, la clave primaria reúne las tres claves foráneas. Le añadimos \tb{fecha\_hora} porque la misma terna se repite en el tiempo: el mismo operario aplica el mismo fertilizante en la misma zona cada semana. Los atributos de la relación (\tb{dosis} y \tb{metodo}) dependen de la aplicación completa y no de uno solo de los participantes, lo que confirma que la tabla está en segunda forma normal.
-
-\subsubsection{Normalización}
-
-Todas las tablas cumplen la primera forma normal (valores atómicos, sin grupos repetidos) y la segunda (en las tablas de clave compuesta, cada atributo no clave depende de la clave completa). Revisamos la tercera forma normal tabla por tabla y encontramos tres casos que merecen explicación:
-
-\begin{itemize}[leftmargin=1.4em,itemsep=0.2em]
-\item \textbf{\tb{Evento\_Riego} está en 3FN pero no en FNBC.} Como un sistema abastece a una sola parcela, se cumple la dependencia \tb{id\_sistema}~$\to$~\tb{id\_parcela}, y \tb{id\_sistema} no es superclave. Sin embargo, \tb{id\_parcela} es atributo primo, porque forma parte de la clave candidata (\tb{id\_parcela}, \tb{num\_zona}, \tb{fecha\_hora\_inicio}); por eso la tabla sí cumple 3FN. Se conserva esta decisión porque mantiene la dependencia y permite representar la unicidad por zona e instante.
-\item \textbf{Ubicación del fundo.} En el Perú el nombre de un distrito no identifica su provincia, así que no existe la dependencia distrito $\to$ provincia. Sí podría argumentarse provincia $\to$ departamento. Con doce fundos la redundancia es pequeña; si la tabla creciera, la solución sería reemplazar las tres columnas por el código UBIGEO del INEI con su propia tabla.
-\item \textbf{Rendimiento de la campaña.} \tb{rendimiento\_kg\_ha} se deriva de las cosechas y del área, por lo que debe mantenerse consistente si se almacena. También podría calcularse en las consultas para evitar guardar un dato derivado.
-\end{itemize}
+La relación \emph{aplica} se transformó en la tabla \tb{Aplicacion\_Insumo}, con una clave foránea hacia cada participante: la zona (compuesta), el insumo y el operario. Por ser de muchos a muchos a muchos, la clave primaria reúne las tres claves foráneas. Le añadimos \tb{fecha\_hora} porque la misma terna se repite en el tiempo: el mismo operario aplica el mismo fertilizante en la misma zona cada semana. Los atributos de la relación son \tb{dosis} y \tb{metodo}.
 
 \subsection{Diccionario de datos}
 
